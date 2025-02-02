@@ -3,7 +3,9 @@ import { io, Socket } from "socket.io-client";
 import { RaceUpdate, RoundUpdate, WinnerUpdate } from "../types/websocketTypes";
 
 const SOCKET_URL =
-  import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:4001/socket.io/?EIO=4&transport=websocket";
+  import.meta.env.VITE_WEBSOCKET_URL;
+
+  console.log("[DEBUG] 🔄 Verbinden met WebSocket URL:", SOCKET_URL);
 
 export const useWebSocket = () => {
   const [socket, setSocket] = useState<Socket | null>(null);
