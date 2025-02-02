@@ -11,10 +11,8 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "**/*.{ts,tsx,js,jsx}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+    "**/*.{js,jsx,ts,tsx}": "eslint --fix",
+    "**/*.{json,md,css,scss,html}": "prettier --write"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.3",
