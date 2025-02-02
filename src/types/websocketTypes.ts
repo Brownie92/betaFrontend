@@ -1,5 +1,3 @@
-// src/types/websocketTypes.ts
-
 export interface Meme {
     memeId: string;
     name: string;
@@ -10,7 +8,7 @@ export interface Meme {
   
   export interface RaceUpdate {
     raceId: string;
-    memes: Meme[];
+    memes: Meme[]; // ✅ Nu verwijzen naar de Meme interface
     currentRound: number;
     roundEndTime: string;
     status: "active" | "closed";

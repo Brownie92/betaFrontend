@@ -1,7 +1,7 @@
 import { createContext, useContext, ReactNode } from "react";
+import { Socket } from "socket.io-client";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { RaceUpdate, RoundUpdate, WinnerUpdate } from "../types/websocketTypes";
-import type { Socket } from "socket.io-client";
 
 // ✅ Type definitie voor WebSocketContext
 interface WebSocketContextType {
@@ -11,7 +11,7 @@ interface WebSocketContextType {
   winnerData: WinnerUpdate | null;
 }
 
-// ✅ Context aanmaken met een lege standaardwaarde
+// ✅ Correcte default waarde (zonder `any`)
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined
 );
