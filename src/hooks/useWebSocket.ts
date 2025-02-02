@@ -1,48 +1,58 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { RaceUpdate, RoundUpdate, WinnerUpdate } from "../types/websocketTypes";
 
-const SOCKET_URL =
-  import.meta.env.VITE_WEBSOCKET_URL;
+const SOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:4001";
 
-  console.log("[DEBUG] 🔄 Verbinden met WebSocket URL:", SOCKET_URL);
+console.debug("[DEBUG] 🔄 Verbinden met WebSocket URL:", SOCKET_URL);
+
+// Singleton WebSocket instance
+let socketInstance: Socket | null = null;
 
 export const useWebSocket = () => {
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
   const [raceData, setRaceData] = useState<RaceUpdate | null>(null);
   const [roundData, setRoundData] = useState<RoundUpdate | null>(null);
   const [winnerData, setWinnerData] = useState<WinnerUpdate | null>(null);
 
   useEffect(() => {
-    const newSocket: Socket = io(SOCKET_URL, {
-      transports: ["websocket"],
-    }) as Socket; // ✅ TypeScript laten weten dat dit een Socket instance is
+    if (!socketInstance) {
+      console.debug("[DEBUG] 🌐 Nieuwe WebSocket-verbinding maken...");
+      socketInstance = io(SOCKET_URL, {
+        transports: ["websocket"],
+      });
 
-    newSocket.on("connect", () => console.log("[SOCKET] ✅ Verbonden met WebSocket"));
-    newSocket.on("disconnect", () => console.log("[SOCKET] ❌ WebSocket verbinding verbroken"));
+      socketInstance.on("connect", () => console.log("[SOCKET] ✅ Verbonden met WebSocket"));
+      socketInstance.on("disconnect", () => console.log("[SOCKET] ❌ WebSocket verbinding verbroken"));
 
-    // Event listeners
-    newSocket.on("raceUpdate", (update: RaceUpdate) => {
-      console.log("[SOCKET] 🏁 Race Update:", update);
-      setRaceData(update);
-    });
+      // Event listeners alleen toevoegen als ze nog niet bestaan
+      socketInstance.on("raceCreated", (update: RaceUpdate) => {
+        console.log("[SOCKET] 🏁 Nieuw ras gecreëerd:", update);
+        setRaceData(update);
+      });
 
-    newSocket.on("roundUpdate", (update: RoundUpdate) => {
-      console.log("[SOCKET] 🔄 Round Update:", update);
-      setRoundData(update);
-    });
+      socketInstance.on("raceUpdate", (update: RaceUpdate) => {
+        console.log("[SOCKET] 🏁 Race Update:", update);
+        setRaceData(update);
+      });
 
-    newSocket.on("winnerUpdate", (update: WinnerUpdate) => {
-      console.log("[SOCKET] 🏆 Winner Update:", update);
-      setWinnerData(update);
-    });
+      socketInstance.on("roundUpdate", (update: RoundUpdate) => {
+        console.log("[SOCKET] 🔄 Round Update:", update);
+        setRoundData(update);
+      });
 
-    setSocket(newSocket);
+      socketInstance.on("winnerUpdate", (update: WinnerUpdate) => {
+        console.log("[SOCKET] 🏆 Winner Update:", update);
+        setWinnerData(update);
+      });
+    }
+
+    socketRef.current = socketInstance;
 
     return () => {
-      newSocket.disconnect();
+      console.debug("[DEBUG] ❌ WebSocket blijft actief, wordt niet afgesloten.");
     };
   }, []);
 
-  return { socket, raceData, roundData, winnerData };
+  return { socket: socketRef.current, raceData, roundData, winnerData };
 };
