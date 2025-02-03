@@ -42,8 +42,11 @@ export const useWebSocket = () => {
     socketInstance.on("roundUpdate", (update: RoundUpdate) => {
       console.log("[SOCKET] 🔄 Round Update:", update);
       setRoundData(update);
+    
+      setRaceData((prevRace) =>
+        prevRace ? { ...prevRace, currentRound: update.roundNumber } : prevRace
+      );
     });
-
     socketInstance.on("winnerUpdate", (update: WinnerUpdate) => {
       console.log("[SOCKET] 🏆 Winner Update:", update);
       setWinnerData(update);
