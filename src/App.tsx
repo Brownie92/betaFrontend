@@ -1,7 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout";
 import NotFound from "./pages/NotFound";
-import RaceOverview from "./pages/RaceOverview"; // ✅ Import toegevoegd
+import RaceOverview from "./pages/RaceOverview";
+import RaceDetails from "./pages/RaceDetails"; // ✅ Zorg dat dit correct is geïmporteerd
 import "./index.css";
 
 const App = () => {
@@ -10,17 +11,9 @@ const App = () => {
       <Route path="/" element={<Layout />}>
         {/* ✅ Race overzicht */}
         <Route index element={<RaceOverview />} />
-
-        {/* ✅ Placeholder voor race detailpagina */}
-        <Route
-          path="race/:raceId"
-          element={
-            <h2 className="text-xl font-bold text-red-500">
-              Race Detailpagina
-            </h2>
-          }
-        />
-
+        {/* ✅ Race detailpagina */}
+        <Route path="race/:raceId" element={<RaceDetails />} />{" "}
+        {/* ✅ Hier aangepast */}
         {/* ✅ Fallback voor niet-bestaande routes */}
         <Route path="*" element={<NotFound />} />
       </Route>

@@ -8,7 +8,7 @@ export interface Meme {
   
   export interface RaceUpdate {
     raceId: string;
-    memes: { memeId: string; name: string; url: string }[];
+    memes: { memeId: string; name: string; url: string, progress: number, votes: number,}[];
     currentRound: number;
     roundEndTime: string;
     status: "active" | "closed";
