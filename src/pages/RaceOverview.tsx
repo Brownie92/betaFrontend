@@ -4,11 +4,11 @@ import { RaceUpdate } from "../types/websocketTypes";
 import { Link } from "react-router-dom";
 
 const RaceOverview = () => {
-  const { raceData } = useWebSocketContext();
+  const { raceData } = useWebSocketContext(); // WebSocket race updates
   const [races, setRaces] = useState<RaceUpdate[]>([]);
-  const [showActive, setShowActive] = useState(true); // ✅ Toggle state
+  const [showClosed, setShowClosed] = useState(false); // Toggle voor gesloten races
 
-  // ✅ API call bij paginalaad
+  // ✅ 1️⃣ API call om races op te halen bij paginalaad
   useEffect(() => {
     const fetchRaces = async () => {
       try {
@@ -25,7 +25,7 @@ const RaceOverview = () => {
     fetchRaces();
   }, []);
 
-  // ✅ WebSocket update verwerken
+  // ✅ 2️⃣ WebSocket update verwerken
   useEffect(() => {
     if (raceData) {
       setRaces((prevRaces) => {
@@ -33,6 +33,7 @@ const RaceOverview = () => {
           race.raceId === raceData.raceId ? raceData : race
         );
 
+        // Voeg race toe als deze nog niet in de lijst staat
         const raceExists = prevRaces.some(
           (race) => race.raceId === raceData.raceId
         );
@@ -41,26 +42,31 @@ const RaceOverview = () => {
     }
   }, [raceData]);
 
-  // ✅ Toggle functie
-  const toggleFilter = () => {
-    setShowActive((prev) => !prev);
+  // ✅ 3️⃣ Datum formatteren
+  const formatDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString("nl-NL", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
-  // ✅ Gefilterde races op basis van status
-  const filteredRaces = races.filter(
-    (race) => race.status === (showActive ? "active" : "closed")
+  // ✅ 4️⃣ Filter races op basis van status
+  const filteredRaces = races.filter((race) =>
+    showClosed ? race.status === "closed" : race.status === "active"
   );
 
   return (
     <div className="p-4">
       <h2 className="text-2xl font-bold mb-4">🏁 Race Overzicht</h2>
 
-      {/* ✅ Toggle-knop */}
+      {/* ✅ Toggle knop voor gesloten races */}
       <button
-        onClick={toggleFilter}
-        className="mb-4 px-4 py-2 bg-blue-500 text-white rounded"
+        className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
+        onClick={() => setShowClosed(!showClosed)}
       >
-        {showActive ? "Toon gesloten races" : "Toon actieve races"}
+        {showClosed ? "Toon actieve races" : "Toon gesloten races"}
       </button>
 
       {filteredRaces.length === 0 ? (
@@ -73,7 +79,7 @@ const RaceOverview = () => {
               className="bg-gray-800 text-white p-4 rounded flex justify-between"
             >
               <span>
-                {race.memes.length > 0 ? race.memes[0].name : "Race"} (
+                <strong>Meme Race</strong> - {formatDate(race.createdAt)} (
                 {race.status})
               </span>
               <Link to={`/race/${race.raceId}`} className="text-blue-400">

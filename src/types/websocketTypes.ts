@@ -8,10 +8,11 @@ export interface Meme {
   
   export interface RaceUpdate {
     raceId: string;
-    memes: Meme[]; // ✅ Nu verwijzen naar de Meme interface
+    memes: { memeId: string; name: string; url: string }[];
     currentRound: number;
     roundEndTime: string;
     status: "active" | "closed";
+    createdAt: string;
   }
   
   export interface RoundUpdate {
