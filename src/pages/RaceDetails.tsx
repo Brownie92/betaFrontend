@@ -89,7 +89,11 @@ const RaceDetails = () => {
 
       {/* ✅ Winnaar tonen als race is afgesloten */}
       {race.status === "closed" && (
-        <WinnerDisplay winner={winner} winnerError={winnerError} />
+        <WinnerDisplay
+          winner={winner}
+          winnerError={winnerError}
+          memes={memes}
+        />
       )}
 
       <p>
