@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { toast } from "react-toastify"; // ✅ Voeg een toast notificatie toe
 
 interface VoteSectionProps {
   raceId: string;
@@ -20,12 +21,12 @@ const VoteSection: React.FC<VoteSectionProps> = ({
 
   const handleVote = async (memeId: string) => {
     if (!walletAddress) {
-      alert("Vul je wallet-adres in om te stemmen.");
+      toast.error("⚠️ Vul je wallet-adres in om te stemmen.");
       return;
     }
 
     if (votedRounds.includes(currentRound)) {
-      alert("Je hebt al gestemd in deze ronde.");
+      toast.warn("⚠️ Je hebt al gestemd in deze ronde.");
       return;
     }
 
@@ -36,10 +37,10 @@ const VoteSection: React.FC<VoteSectionProps> = ({
       });
 
       setVotedRounds([...votedRounds, currentRound]);
-      alert("✅ Stem succesvol uitgebracht!");
+      toast.success("✅ Stem succesvol uitgebracht!");
     } catch (error) {
       console.error("❌ Fout bij stemmen:", error);
-      alert("Er is een fout opgetreden bij het stemmen.");
+      toast.error("❌ Er is een fout opgetreden bij het stemmen.");
     }
   };
 

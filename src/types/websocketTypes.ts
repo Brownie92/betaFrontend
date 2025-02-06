@@ -33,3 +33,9 @@ export interface Meme {
     progress: number;
     votes: number;
   }
+
+  export interface VoteUpdate {
+    raceId: string;
+    memeId: string;
+    totalVotes: number;
+  }

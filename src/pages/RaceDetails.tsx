@@ -17,7 +17,7 @@ const RaceDetails = () => {
   const [winnerError, setWinnerError] = useState(false);
   const [votedRounds, setVotedRounds] = useState<number[]>([]);
 
-  // ✅ Racegegevens ophalen via API
+  // ✅ Haal racegegevens op via API
   const fetchRaceDetails = useCallback(async () => {
     if (!raceId) return;
 
@@ -34,7 +34,7 @@ const RaceDetails = () => {
     }
   }, [raceId]);
 
-  // ✅ Winnaar ophalen als race is afgesloten
+  // ✅ Haal winnaar op als race is afgesloten
   const fetchWinner = useCallback(async () => {
     if (!raceId || (race && race.status !== "closed")) return;
 
@@ -70,9 +70,17 @@ const RaceDetails = () => {
     if (raceData && raceData.raceId === raceId) {
       console.log("📡 WebSocket Race Update ontvangen:", raceData);
       setRace(raceData);
-      setMemes(raceData.memes);
+
+      // ✅ Controleer of memes al geladen zijn, anders API-call uitvoeren
+      if (memes.length === 0) {
+        console.log("📡 Geen memes in state, ophalen via API...");
+        fetchRaceDetails(); // ✅ API opnieuw aanroepen
+      } else {
+        console.log("✅ Memes al aanwezig, alleen WebSocket-update toepassen.");
+        setMemes(raceData.memes);
+      }
     }
-  }, [raceData, raceId]);
+  }, [raceData, raceId, fetchRaceDetails, memes]);
 
   // ✅ Extra: Race opnieuw ophalen als WebSocket-update binnenkomt
   useEffect(() => {
@@ -114,11 +122,14 @@ const RaceDetails = () => {
         />
       )}
 
-      {/* ✅ Lijst met memes & voortgangsbalken */}
-      <MemeList
-        memes={memes}
-        maxProgress={Math.max(...memes.map((m) => m.progress || 0)) || 1}
-      />
+      {/* ✅ Lijst met memes & voortgangsbalken (alleen zichtbaar vanaf ronde 2) */}
+      {race.currentRound > 1 && (
+        <MemeList
+          raceId={raceId!} // ✅ Nu wordt raceId correct doorgegeven
+          memes={memes}
+          maxProgress={Math.max(...memes.map((m) => m.progress || 0)) || 1}
+        />
+      )}
     </div>
   );
 };
