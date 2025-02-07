@@ -1,134 +1,95 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { useWebSocketContext } from "../context/WebSocketContext";
-import { RaceUpdate, Meme } from "../types/websocketTypes";
-import ChooseMeme from "../components/ChooseMeme";
-import MemeList from "../components/MemeList";
+import MemeSelection from "../components/MemeSelection";
+import VotingPhase from "../components/VotingPhase";
 import WinnerDisplay from "../components/WinnerDisplay";
-import VoteSection from "../components/VoteSection";
+import { RaceUpdate } from "../types/websocketTypes";
 
 const RaceDetails = () => {
   const { raceId } = useParams<{ raceId: string }>();
   const { raceData } = useWebSocketContext();
   const [race, setRace] = useState<RaceUpdate | null>(null);
-  const [memes, setMemes] = useState<Meme[]>([]);
-  const [winner, setWinner] = useState<Meme | null>(null);
-  const [winnerError, setWinnerError] = useState(false);
-  const [votedRounds, setVotedRounds] = useState<number[]>([]);
+  const [walletAddress, setWalletAddress] = useState("");
+  const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
-  // ✅ Haal racegegevens op via API
-  const fetchRaceDetails = useCallback(async () => {
+  // ✅ **Race ophalen bij eerste render**
+  useEffect(() => {
     if (!raceId) return;
 
-    try {
-      console.log("📡 Race opnieuw ophalen...");
-      const raceResponse = await axios.get<RaceUpdate>(
-        `${import.meta.env.VITE_API_BASE_URL}/races/${raceId}`
-      );
+    const fetchRace = async () => {
+      try {
+        const response = await axios.get<RaceUpdate>(
+          `${import.meta.env.VITE_API_BASE_URL}/races/${raceId}`
+        );
+        setRace(response.data);
+      } catch (error) {
+        console.error("❌ [ERROR] Kan race niet ophalen:", error);
+      }
+    };
 
-      setRace(raceResponse.data);
-      setMemes(raceResponse.data.memes);
-    } catch (error) {
-      console.error("❌ Fout bij ophalen van race:", error);
-    }
+    fetchRace();
   }, [raceId]);
 
-  // ✅ Haal winnaar op als race is afgesloten
-  const fetchWinner = useCallback(async () => {
-    if (!raceId || (race && race.status !== "closed")) return;
+  // ✅ **WebSocket updates verwerken**
+  useEffect(() => {
+    if (!raceData || raceData.raceId !== raceId) return;
+
+    if (raceData.currentRound !== race?.currentRound) {
+      setRace(raceData);
+    }
+  }, [raceData, raceId, race?.currentRound]);
+
+  // ✅ **Meme kiezen en opslaan**
+  const handleMemeSelection = async (memeId: string) => {
+    if (!walletAddress) {
+      alert("Vul je wallet-adres in om een meme te kiezen!");
+      return;
+    }
 
     try {
-      console.log("🏆 Winnaar ophalen...");
-      const winnerResponse = await axios.get(
-        `${import.meta.env.VITE_API_BASE_URL}/winners/${raceId}`
-      );
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/participants/`, {
+        raceId,
+        walletAddress,
+        memeId,
+      });
 
-      if (winnerResponse.data) {
-        setWinner(winnerResponse.data);
-      }
+      setSelectedMeme(memeId);
+
+      setTimeout(async () => {
+        const updatedRace = await axios.get<RaceUpdate>(
+          `${import.meta.env.VITE_API_BASE_URL}/races/${raceId}`
+        );
+        setRace(updatedRace.data);
+      }, 1000);
     } catch (error) {
-      console.error("❌ Fout bij ophalen van winnaar:", error);
-      setWinnerError(true);
+      console.error("❌ [ERROR] Meme selectie mislukt:", error);
     }
-  }, [raceId, race]);
+  };
 
-  // ✅ Initialiseer racegegevens bij eerste render
-  useEffect(() => {
-    fetchRaceDetails();
-  }, [fetchRaceDetails]);
-
-  // ✅ Haal winnaar op als race is afgesloten
-  useEffect(() => {
-    if (race?.status === "closed") {
-      fetchWinner();
-    }
-  }, [race, fetchWinner]);
-
-  // ✅ WebSocket: update race- en meme-data bij nieuwe race-update
-  useEffect(() => {
-    if (raceData && raceData.raceId === raceId) {
-      console.log("📡 WebSocket Race Update ontvangen:", raceData);
-      setRace(raceData);
-
-      // ✅ Controleer of memes al geladen zijn, anders API-call uitvoeren
-      if (memes.length === 0) {
-        console.log("📡 Geen memes in state, ophalen via API...");
-        fetchRaceDetails(); // ✅ API opnieuw aanroepen
-      } else {
-        console.log("✅ Memes al aanwezig, alleen WebSocket-update toepassen.");
-        setMemes(raceData.memes);
-      }
-    }
-  }, [raceData, raceId, fetchRaceDetails, memes]);
-
-  // ✅ Extra: Race opnieuw ophalen als WebSocket-update binnenkomt
-  useEffect(() => {
-    if (raceData) {
-      fetchRaceDetails();
-    }
-  }, [raceData]);
-
-  if (!race) return <p>Laden...</p>;
+  if (!race) return <p>Loading...</p>;
 
   return (
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-4">🏁 Race Details</h2>
-
-      {/* ✅ Winnaar tonen als race is afgesloten */}
-      {race.status === "closed" && (
-        <WinnerDisplay
-          winner={winner}
-          winnerError={winnerError}
-          memes={memes}
-        />
-      )}
-
       <p>
         Huidige ronde: <strong>{race.currentRound}</strong>
       </p>
 
-      {/* ✅ Ronde 1: Meme kiezen */}
-      {race.currentRound === 1 && <ChooseMeme raceId={raceId!} />}
-
-      {/* ✅ Ronde 2-6: Stemmen */}
-      {race.currentRound > 1 && race.currentRound <= 6 && (
-        <VoteSection
-          raceId={raceId!}
-          currentRound={race.currentRound}
-          votedRounds={votedRounds}
-          setVotedRounds={setVotedRounds}
-          memes={memes} // ✅ Nu met juiste meme-lijst
+      {/* ✅ **Race is afgelopen → Toon winnaar** */}
+      {race.status === "closed" ? (
+        <WinnerDisplay raceId={race.raceId} />
+      ) : race.currentRound === 1 ? (
+        <MemeSelection
+          race={race}
+          walletAddress={walletAddress}
+          setWalletAddress={setWalletAddress}
+          selectedMeme={selectedMeme}
+          onMemeSelect={handleMemeSelection}
         />
-      )}
-
-      {/* ✅ Lijst met memes & voortgangsbalken (alleen zichtbaar vanaf ronde 2) */}
-      {race.currentRound > 1 && (
-        <MemeList
-          raceId={raceId!} // ✅ Nu wordt raceId correct doorgegeven
-          memes={memes}
-          maxProgress={Math.max(...memes.map((m) => m.progress || 0)) || 1}
-        />
+      ) : (
+        <VotingPhase race={race} />
       )}
     </div>
   );

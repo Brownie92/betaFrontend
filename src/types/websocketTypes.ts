@@ -5,10 +5,9 @@ export interface Meme {
     votes: number;
     progress: number;
   }
-  
   export interface RaceUpdate {
     raceId: string;
-    memes: { memeId: string; name: string; url: string, progress: number, votes: number,}[];
+    memes: Meme[]; // ✅ Verwijst nu naar de bestaande `Meme` interface
     currentRound: number;
     roundEndTime: string;
     status: "active" | "closed";

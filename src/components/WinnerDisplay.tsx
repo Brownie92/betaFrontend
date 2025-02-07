@@ -1,74 +1,62 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Meme } from "../types/websocketTypes";
 
-interface WinnerDisplayProps {
-  winner: { memeId: string | { _id: string }; progress: number } | null;
-  memes: Meme[];
-  winnerError: boolean;
+interface Winner {
+  memeId: {
+    memeId: string;
+    name: string;
+    url: string;
+  };
+  progress: number;
+  votes: number;
 }
 
-const WinnerDisplay: React.FC<WinnerDisplayProps> = ({
-  winner,
-  memes,
-  winnerError,
-}) => {
-  const [winnerMeme, setWinnerMeme] = useState<Meme | null>(null);
+interface WinnerDisplayProps {
+  raceId: string;
+}
+
+const WinnerDisplay: React.FC<WinnerDisplayProps> = ({ raceId }) => {
+  const [winner, setWinner] = useState<Winner | null>(null);
 
   useEffect(() => {
-    if (!winner) return;
+    const fetchWinner = async () => {
+      try {
+        console.log("🏆 [API] Winnaar ophalen...");
+        const response = await axios.get(
+          `${import.meta.env.VITE_API_BASE_URL}/winners/${raceId}`
+        );
 
-    // Ensure memeId is extracted correctly as a string
-    const winnerId =
-      typeof winner.memeId === "string"
-        ? winner.memeId
-        : typeof winner.memeId === "object" && "_id" in winner.memeId
-          ? winner.memeId._id
-          : "";
-
-    if (!winnerId) return;
-
-    // Check if the winner is already in the local memes list
-    const foundMeme = memes.find((m) => m.memeId === winnerId);
-    if (foundMeme) {
-      setWinnerMeme(foundMeme);
-      return;
-    }
-
-    // Fetch the winner meme from the API if not found locally
-    axios
-      .post<Meme[]>(`${import.meta.env.VITE_API_BASE_URL}/memes/byIds`, {
-        memeIds: [winnerId],
-      })
-      .then((response) => {
-        if (response.data.length > 0) {
-          setWinnerMeme(response.data[0]);
+        if (response.data) {
+          setWinner(response.data);
+        } else {
+          console.warn("⚠️ Geen winnaar gevonden voor deze race.");
         }
-      })
-      .catch(() => {
-        console.error("Failed to fetch winner meme.");
-      });
-  }, [winner, memes]);
+      } catch (error) {
+        console.error("❌ [ERROR] Kan winnaar niet ophalen:", error);
+      }
+    };
 
-  if (!winner) return null;
+    fetchWinner();
+  }, [raceId]);
 
   return (
-    <div className="mb-6 p-4 bg-yellow-300 text-black text-center rounded-lg">
-      <h3 className="text-2xl font-bold">🏆 Winner!</h3>
-      {winnerMeme ? (
-        <>
+    <div className="p-4 border border-green-500 rounded text-center">
+      <h3 className="text-xl font-semibold text-green-500">
+        🏆 De winnaar is:
+      </h3>
+      {winner ? (
+        <div>
+          <p className="text-2xl font-bold">{winner.memeId.name} 🎉</p>
           <img
-            src={winnerMeme.url}
-            alt={winnerMeme.name}
-            className="w-24 h-24 object-cover mx-auto rounded-full border border-gray-600"
+            src={winner.memeId.url}
+            alt={winner.memeId.name}
+            className="mt-2 w-32 h-32 mx-auto rounded-lg"
           />
-          <p className="text-lg font-semibold mt-2">{winnerMeme.name}</p>
-          <p>Progress: {winner.progress}</p>
-        </>
-      ) : winnerError ? (
-        <p className="text-red-500">⚠️ Could not retrieve the winner.</p>
+          <p className="mt-2 text-gray-600">📊 Progress: {winner.progress}</p>
+          <p className="text-gray-600">🗳️ Votes: {winner.votes}</p>
+        </div>
       ) : (
-        <p>Loading winner...</p>
+        <p className="text-red-500">Geen winnaar beschikbaar.</p>
       )}
     </div>
   );

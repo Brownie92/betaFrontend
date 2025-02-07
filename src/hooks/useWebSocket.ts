@@ -14,7 +14,8 @@ export const useWebSocket = () => {
   const [raceData, setRaceData] = useState<RaceUpdate | null>(null);
   const [roundData, setRoundData] = useState<RoundUpdate | null>(null);
   const [winnerData, setWinnerData] = useState<WinnerUpdate | null>(null);
-  const [voteData, setVoteData] = useState<VoteUpdate | null>(null); // ✅ Vote update
+  const [voteData, setVoteData] = useState<VoteUpdate | null>(null);
+  const [latestVote, setLatestVote] = useState<VoteUpdate | null>(null); // ✅ Nieuwe state voor votes
 
   useEffect(() => {
     if (!socketInstance) {
@@ -27,7 +28,7 @@ export const useWebSocket = () => {
     socketInstance.on("connect", () => console.log("[SOCKET] ✅ Connected"));
     socketInstance.on("disconnect", () => console.log("[SOCKET] ❌ Disconnected"));
 
-    // ✅ Listen for WebSocket events
+    // ✅ WebSocket events
     socketInstance.on("raceCreated", (update: RaceUpdate) => {
       console.log("[SOCKET] 🏁 New race created:", update);
       setRaceData(update);
@@ -52,15 +53,29 @@ export const useWebSocket = () => {
       setWinnerData(update);
     });
 
+    // ✅ **Vote updates via WebSocket**
     socketInstance.on("voteUpdate", (update: VoteUpdate) => {
-      console.log("[SOCKET] 🗳️ Vote Update received:", update);
-      setVoteData(update);
+      console.log("[SOCKET] 🗳️ Nieuwe stem binnengekomen:", update);
+      setLatestVote(update); // ✅ Zet de laatste vote update in een aparte state
     });
 
     return () => {
-      console.debug("[DEBUG] ❌ WebSocket stays active, not closing.");
+      console.debug("[DEBUG] ❌ Cleaning up WebSocket listeners.");
+      socketInstance?.off("raceCreated");
+      socketInstance?.off("raceUpdate");
+      socketInstance?.off("roundUpdate");
+      socketInstance?.off("winnerUpdate");
+      socketInstance?.off("voteUpdate");
     };
   }, []);
+
+  // ✅ **Trigger een UI update zodra `latestVote` verandert**
+  useEffect(() => {
+    if (latestVote) {
+      console.log("🔄 [UPDATE] VoteData bijgewerkt in state:", latestVote);
+      setVoteData(latestVote);
+    }
+  }, [latestVote]);
 
   return { socket: socketRef.current, raceData, roundData, winnerData, voteData };
 };
