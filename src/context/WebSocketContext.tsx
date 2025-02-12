@@ -7,7 +7,7 @@ import {
   VoteUpdate,
 } from "../types/websocketTypes";
 
-// ✅ WebSocketContext Type
+// Define WebSocket context type
 interface WebSocketContextType {
   socket: ReturnType<typeof useWebSocket>["socket"];
   raceData: RaceUpdate | null;
@@ -16,11 +16,12 @@ interface WebSocketContextType {
   voteData: VoteUpdate | null;
 }
 
-// ✅ Context aanmaken (default waarde: undefined)
+// Create context with default value as undefined
 const WebSocketContext = createContext<WebSocketContextType | undefined>(
   undefined
 );
 
+// WebSocketProvider component
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   const { socket, raceData, roundData, winnerData, voteData } = useWebSocket();
 
@@ -33,7 +34,7 @@ export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// ✅ Custom hook om WebSocketContext te gebruiken
+// Custom hook to access WebSocketContext
 export const useWebSocketContext = () => {
   const context = useContext(WebSocketContext);
   if (!context) {

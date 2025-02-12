@@ -6,9 +6,9 @@ import { Link } from "react-router-dom";
 const RaceOverview = () => {
   const { raceData } = useWebSocketContext(); // WebSocket race updates
   const [races, setRaces] = useState<RaceUpdate[]>([]);
-  const [showClosed, setShowClosed] = useState(false); // Toggle voor gesloten races
+  const [showClosed, setShowClosed] = useState(false); // Toggle for closed races
 
-  // ✅ 1️⃣ API call om races op te halen bij paginalaad
+  // ✅ Fetch races from API on page load
   useEffect(() => {
     const fetchRaces = async () => {
       try {
@@ -18,14 +18,14 @@ const RaceOverview = () => {
         const data: RaceUpdate[] = await response.json();
         setRaces(data);
       } catch (error) {
-        console.error("[ERROR] ❌ Fout bij ophalen races:", error);
+        console.error("❌ [ERROR] Failed to fetch races:", error);
       }
     };
 
     fetchRaces();
   }, []);
 
-  // ✅ 2️⃣ WebSocket update verwerken
+  // ✅ Handle WebSocket race updates
   useEffect(() => {
     if (raceData) {
       setRaces((prevRaces) => {
@@ -33,7 +33,7 @@ const RaceOverview = () => {
           race.raceId === raceData.raceId ? raceData : race
         );
 
-        // Voeg race toe als deze nog niet in de lijst staat
+        // Add race if it does not exist in the list
         const raceExists = prevRaces.some(
           (race) => race.raceId === raceData.raceId
         );
@@ -42,7 +42,7 @@ const RaceOverview = () => {
     }
   }, [raceData]);
 
-  // ✅ 3️⃣ Datum formatteren
+  // ✅ Format date to DD-MM-YYYY
   const formatDate = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleDateString("nl-NL", {
@@ -52,25 +52,25 @@ const RaceOverview = () => {
     });
   };
 
-  // ✅ 4️⃣ Filter races op basis van status
+  // ✅ Filter races based on status
   const filteredRaces = races.filter((race) =>
     showClosed ? race.status === "closed" : race.status === "active"
   );
 
   return (
     <div className="p-4">
-      <h2 className="text-2xl font-bold mb-4">🏁 Race Overzicht</h2>
+      <h2 className="text-2xl font-bold mb-4">🏁 Race Overview</h2>
 
-      {/* ✅ Toggle knop voor gesloten races */}
+      {/* ✅ Toggle button for closed races */}
       <button
         className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
         onClick={() => setShowClosed(!showClosed)}
       >
-        {showClosed ? "Toon actieve races" : "Toon gesloten races"}
+        {showClosed ? "Show active races" : "Show closed races"}
       </button>
 
       {filteredRaces.length === 0 ? (
-        <p>Geen races gevonden...</p>
+        <p>No races found...</p>
       ) : (
         <div className="space-y-2">
           {filteredRaces.map((race) => (
@@ -83,7 +83,7 @@ const RaceOverview = () => {
                 {race.status})
               </span>
               <Link to={`/race/${race.raceId}`} className="text-blue-400">
-                Bekijk details
+                View details
               </Link>
             </div>
           ))}

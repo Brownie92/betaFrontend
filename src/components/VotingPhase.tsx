@@ -13,11 +13,9 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
   const [hasVoted, setHasVoted] = useState<boolean>(false);
   const { voteData } = useWebSocketContext();
 
-  // ✅ API Call: Stemmen ophalen (debounced)
+  // ✅ Fetch votes from API with debounce
   const fetchVotes = useCallback(() => {
-    console.log(`📡 [API] Fetching votes for round ${race.currentRound}...`);
-
-    const controller = new AbortController(); // ✅ AbortController om race conditions te voorkomen
+    const controller = new AbortController(); // Prevent race conditions
     const timeoutId = setTimeout(async () => {
       try {
         const response = await axios.get(
@@ -25,7 +23,6 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
           { signal: controller.signal }
         );
 
-        console.log("✅ [API] Votes binnengehaald:", response.data);
         const voteData = response.data.reduce(
           (
             acc: { [key: string]: number },
@@ -40,22 +37,20 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
         setVotes(voteData);
       } catch (error) {
         if (axios.isCancel(error)) {
-          console.log(
-            "⚠️ [API] Request geannuleerd (race conditions voorkomen)"
-          );
+          console.warn("[API] Request canceled (avoiding race conditions)");
         } else {
-          console.error("❌ [ERROR] Fout bij ophalen van stemmen:", error);
+          console.error("[ERROR] Failed to fetch votes:", error);
         }
       }
-    }, 500); // ✅ 500ms debounce
+    }, 500); // 500ms debounce
 
     return () => {
       clearTimeout(timeoutId);
-      controller.abort(); // ✅ Annuleer oudere API-calls als een nieuwe wordt gestart
+      controller.abort();
     };
   }, [race.raceId, race.currentRound]);
 
-  // ✅ Haal stemmen op bij component mount en rondewijziging
+  // ✅ Fetch votes on mount and round change
   useEffect(() => {
     fetchVotes();
   }, [fetchVotes]);
@@ -64,22 +59,18 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
   useEffect(() => {
     if (!voteData || voteData.raceId !== race.raceId) return;
 
-    console.log("🔄 [LIVE UPDATE] Nieuwe stem ontvangen:", voteData);
-
     setVotes((prevVotes) => ({
       ...prevVotes,
       [voteData.memeId]: voteData.totalVotes,
     }));
   }, [voteData, race.raceId]);
 
-  // ✅ Stemfunctie
+  // ✅ Handle voting action
   const handleVote = async (memeId: string) => {
-    if (!walletAddress)
-      return alert("⚠️ Vul je wallet-adres in om te stemmen!");
-    if (hasVoted) return alert("⚠️ Je hebt al gestemd deze ronde!");
+    if (!walletAddress) return alert("⚠️ Enter your wallet address to vote!");
+    if (hasVoted) return alert("⚠️ You have already voted this round!");
 
     try {
-      console.log(`🗳️ [VOTE] Stem uitbrengen op ${memeId}...`);
       await axios.post(
         `${import.meta.env.VITE_API_BASE_URL}/votes/${race.raceId}`,
         {
@@ -88,30 +79,28 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
         }
       );
 
-      console.log(`✅ [VOTE] Stem succesvol uitgebracht op ${memeId}`);
-
-      // 🔥 UI direct updaten voordat de API-call klaar is
+      // Update UI instantly before API response
       setVotes((prevVotes) => ({
         ...prevVotes,
         [memeId]: (prevVotes[memeId] || 0) + 1,
       }));
 
-      // ✅ Voorkomen dat dezelfde gebruiker opnieuw stemt
+      // Prevent duplicate votes
       setHasVoted(true);
 
-      // ✅ Extra check: Haal stemmen opnieuw op na korte delay
+      // Fetch updated votes after a short delay
       setTimeout(fetchVotes, 500);
     } catch (error) {
-      console.error("❌ [ERROR] Stemmen mislukt:", error);
+      console.error("[ERROR] Voting failed:", error);
     }
   };
 
   return (
     <div>
-      <h3 className="text-xl font-semibold">🗳️ Stemmen</h3>
+      <h3 className="text-xl font-semibold">🗳️ Voting</h3>
       <input
         type="text"
-        placeholder="Voer je wallet-adres in"
+        placeholder="Enter your wallet address"
         className="border p-2 rounded w-full mb-4"
         value={walletAddress}
         onChange={(e) => setWalletAddress(e.target.value)}
@@ -122,9 +111,9 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({ race }) => {
             key={meme.memeId}
             className={`px-4 py-2 rounded ${hasVoted ? "bg-gray-400" : "bg-blue-500 text-white"}`}
             onClick={() => handleVote(meme.memeId)}
-            disabled={hasVoted} // ✅ Knop uitschakelen na stem
+            disabled={hasVoted} // Disable button after voting
           >
-            Stem op {meme.name} ({votes[meme.memeId] || 0} stemmen)
+            Vote for {meme.name} ({votes[meme.memeId] || 0} votes)
           </button>
         ))}
       </div>

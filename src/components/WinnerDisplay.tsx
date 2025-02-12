@@ -5,23 +5,25 @@ interface WinnerDisplayProps {
 }
 
 const WinnerDisplay: React.FC<WinnerDisplayProps> = ({ winner }) => {
+  // Check if winner data is valid
   if (!winner || !winner.memeId || typeof winner.memeId !== "object") {
     return (
       <div className="p-4 border border-green-500 rounded text-center">
         <h3 className="text-xl font-semibold text-green-500">
-          🏆 De winnaar is:
+          🏆 The winner is:
         </h3>
-        <p className="text-red-500">Geen winnaar beschikbaar.</p>
+        <p className="text-red-500">No winner available.</p>
       </div>
     );
   }
 
-  const memeDetails = winner.memeId as Meme; // ✅ Meme object direct gebruiken
+  // Ensure meme details are correctly extracted
+  const memeDetails = winner.memeId as Meme;
 
   return (
     <div className="p-4 border border-green-500 rounded text-center">
       <h3 className="text-xl font-semibold text-green-500">
-        🏆 De winnaar is:
+        🏆 The winner is:
       </h3>
       <div>
         <p className="text-2xl font-bold">{memeDetails.name} 🎉</p>

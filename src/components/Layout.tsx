@@ -3,16 +3,23 @@ import Navbar from "./Navbar";
 
 const Layout = () => {
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-blue-600 text-white p-4">
-        <h1 className="text-xl font-bold">ThemeRace</h1>
+    <div className="min-h-screen flex flex-col bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-blue-600 text-white p-4 shadow-md">
+        <h1 className="text-2xl font-bold tracking-wide text-center md:text-left">
+          🏁 ThemeRace
+        </h1>
       </header>
-      <main className="flex-grow p-4">
+
+      {/* Main Content */}
+      <main className="flex-grow p-4 container mx-auto">
         <Navbar />
-        <Outlet /> {/* Hier worden de pagina's geladen */}
+        <Outlet /> {/* Render child routes here */}
       </main>
-      <footer className="bg-gray-800 text-white text-center p-2">
-        © 2025 ThemeRace
+
+      {/* Footer */}
+      <footer className="bg-gray-800 text-gray-300 text-center py-2 text-sm">
+        © {new Date().getFullYear()} ThemeRace. All rights reserved.
       </footer>
     </div>
   );

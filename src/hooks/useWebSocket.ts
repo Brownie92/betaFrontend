@@ -4,9 +4,7 @@ import { RaceUpdate, RoundUpdate, WinnerUpdate, VoteUpdate } from "../types/webs
 
 const SOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:4001";
 
-console.debug("[DEBUG] 🔄 Connecting to WebSocket:", SOCKET_URL);
-
-// ✅ Singleton to prevent multiple connections
+// Singleton instance to prevent multiple WebSocket connections
 let socketInstance: Socket | null = null;
 
 export const useWebSocket = () => {
@@ -15,11 +13,10 @@ export const useWebSocket = () => {
   const [roundData, setRoundData] = useState<RoundUpdate | null>(null);
   const [winnerData, setWinnerData] = useState<WinnerUpdate | null>(null);
   const [voteData, setVoteData] = useState<VoteUpdate | null>(null);
-  const [latestVote, setLatestVote] = useState<VoteUpdate | null>(null); // ✅ Nieuwe state voor votes
+  const [latestVote, setLatestVote] = useState<VoteUpdate | null>(null);
 
   useEffect(() => {
     if (!socketInstance) {
-      console.debug("[DEBUG] 🌐 Creating new WebSocket connection...");
       socketInstance = io(SOCKET_URL, { transports: ["websocket"] });
     }
 
@@ -28,44 +25,23 @@ export const useWebSocket = () => {
     socketInstance.on("connect", () => console.log("[SOCKET] ✅ Connected"));
     socketInstance.on("disconnect", () => console.log("[SOCKET] ❌ Disconnected"));
 
-    // ✅ WebSocket events
-    socketInstance.on("raceCreated", (update: RaceUpdate) => {
-      console.log("[SOCKET] 🏁 New race created:", update);
-      setRaceData(update);
-    });
-
-    socketInstance.on("raceUpdate", (update: RaceUpdate) => {
-      console.log("[SOCKET] 🏁 Race Update:", update);
-      setRaceData(update);
-    });
+    // WebSocket event listeners
+    socketInstance.on("raceCreated", (update: RaceUpdate) => setRaceData(update));
+    socketInstance.on("raceUpdate", (update: RaceUpdate) => setRaceData(update));
 
     socketInstance.on("roundUpdate", (update: RoundUpdate) => {
-      console.log("[SOCKET] 🔄 Round Update:", update);
       setRoundData(update);
-
       setRaceData((prevRace) =>
         prevRace ? { ...prevRace, currentRound: update.roundNumber } : prevRace
       );
     });
 
-    socketInstance.on("raceClosed", (update: RaceUpdate) => {
-      console.log("[SOCKET] 🏁 Race gesloten:", update);
-      setRaceData(update);
-    });
+    socketInstance.on("raceClosed", (update: RaceUpdate) => setRaceData(update));
+    socketInstance.on("winnerUpdate", (update: WinnerUpdate) => setWinnerData(update));
 
-    socketInstance.on("winnerUpdate", (update: WinnerUpdate) => {
-      console.log("[SOCKET] 🏆 Winner Update:", update);
-      setWinnerData(update);
-    });
-
-    // ✅ **Vote updates via WebSocket**
-    socketInstance.on("voteUpdate", (update: VoteUpdate) => {
-      console.log("[SOCKET] 🗳️ Nieuwe stem binnengekomen:", update);
-      setLatestVote(update); // ✅ Zet de laatste vote update in een aparte state
-    });
+    socketInstance.on("voteUpdate", (update: VoteUpdate) => setLatestVote(update));
 
     return () => {
-      console.debug("[DEBUG] ❌ Cleaning up WebSocket listeners.");
       socketInstance?.off("raceCreated");
       socketInstance?.off("raceUpdate");
       socketInstance?.off("roundUpdate");
@@ -74,10 +50,9 @@ export const useWebSocket = () => {
     };
   }, []);
 
-  // ✅ **Trigger een UI update zodra `latestVote` verandert**
+  // Update state when a new vote is received
   useEffect(() => {
     if (latestVote) {
-      console.log("🔄 [UPDATE] VoteData bijgewerkt in state:", latestVote);
       setVoteData(latestVote);
     }
   }, [latestVote]);

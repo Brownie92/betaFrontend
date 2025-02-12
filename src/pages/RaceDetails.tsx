@@ -15,7 +15,7 @@ const RaceDetails = () => {
   const [walletAddress, setWalletAddress] = useState("");
   const [selectedMeme, setSelectedMeme] = useState<string | null>(null);
 
-  // ✅ **Race ophalen bij eerste render**
+  // ✅ Fetch race details on first render
   useEffect(() => {
     if (!raceId) return;
 
@@ -25,28 +25,33 @@ const RaceDetails = () => {
           `${import.meta.env.VITE_API_BASE_URL}/races/${raceId}`
         );
         setRace(response.data);
-        console.log("✅ [API] Race binnengehaald:", response.data);
+        console.log("✅ [API] Race fetched:", response.data);
+
+        // ✅ If race is closed, fetch winner immediately
+        if (response.data.status === "closed") {
+          fetchWinner(response.data.raceId);
+        }
       } catch (error) {
-        console.error("❌ [ERROR] Kan race niet ophalen:", error);
+        console.error("❌ [ERROR] Failed to fetch race:", error);
       }
     };
 
     fetchRace();
   }, [raceId]);
 
-  // ✅ **Luisteren naar 'raceClosed' WebSocket event**
+  // ✅ Listen for 'raceClosed' WebSocket event
   useEffect(() => {
     if (!socket) return;
 
     const handleRaceClosed = (update: { raceId: string; status: string }) => {
       if (update.raceId === raceId) {
-        console.log("🏁 [WebSocket] Race gesloten, UI status bijwerken...");
+        console.log("🏁 [WebSocket] Race closed, updating UI...");
 
         setRace((prevRace) =>
           prevRace ? { ...prevRace, status: "closed" } : prevRace
         );
 
-        // ✅ Vertraging toevoegen voordat de API de winnaar ophaalt (500ms)
+        // ✅ Ensure the database is updated before fetching winner
         setTimeout(() => fetchWinner(update.raceId), 500);
       }
     };
@@ -58,11 +63,11 @@ const RaceDetails = () => {
     };
   }, [socket, raceId]);
 
-  // ✅ **Winnaar ophalen via WebSocket**
+  // ✅ Handle winner updates via WebSocket
   const handleWinnerUpdate = useCallback(
     (updatedWinner: WinnerUpdate) => {
       if (updatedWinner.raceId === raceId) {
-        console.log("🏆 [WebSocket] Winnaar update ontvangen:", updatedWinner);
+        console.log("🏆 [WebSocket] Winner update received:", updatedWinner);
         setWinner(updatedWinner);
       }
     },
@@ -79,37 +84,37 @@ const RaceDetails = () => {
     };
   }, [socket, handleWinnerUpdate]);
 
-  // ✅ **Winnaar ophalen via API (met controle op WebSocket-update)**
+  // ✅ Fetch winner via API as a fallback (only if WebSocket is missing)
   const fetchWinner = async (raceId: string) => {
-    if (winner) return; // ✅ Voorkomt dubbele API-call als WebSocket update sneller is
+    if (winner) return; // Avoid redundant API calls if WebSocket already updated
 
     try {
-      console.log("🏆 [WINNER] Winnaar ophalen via API...");
+      console.log("🏆 [WINNER] Fetching winner via API...");
       const response = await axios.get<WinnerUpdate>(
         `${import.meta.env.VITE_API_BASE_URL}/winners/${raceId}`
       );
       setWinner(response.data);
-      console.log("✅ [WINNER] Winnaar ontvangen:", response.data);
+      console.log("✅ [WINNER] Winner received via API:", response.data);
     } catch (error) {
-      console.error("❌ [ERROR] Kan winnaar niet ophalen:", error);
+      console.error("❌ [ERROR] Failed to fetch winner:", error);
     }
   };
 
-  // ✅ **Winnaar ophalen bij pagina-refresh als race gesloten is**
+  // ✅ Ensure the winner is fetched when refreshing a closed race
   useEffect(() => {
     if (race?.status === "closed" && !winner) {
-      console.log("🏆 [DEBUG] Winnaar ophalen via API na pagina-refresh...");
+      console.log("🏆 [DEBUG] Fetching winner after page refresh...");
       fetchWinner(race.raceId);
     }
   }, [race, winner]);
 
-  // ✅ **Race-updates verwerken via WebSocket**
+  // ✅ Handle race updates via WebSocket
   useEffect(() => {
     if (!raceData || raceData.raceId !== raceId) return;
 
     if (raceData.currentRound !== race?.currentRound) {
       console.log(
-        `🔄 [WebSocket] Ronde gewijzigd: ${race?.currentRound} → ${raceData.currentRound}`
+        `🔄 [WebSocket] Round changed: ${race?.currentRound} → ${raceData.currentRound}`
       );
 
       setRace((prev) =>
@@ -118,36 +123,38 @@ const RaceDetails = () => {
     }
   }, [raceData, raceId, race?.currentRound]);
 
-  // ✅ **WinnerDisplay optimalisatie**
+  // ✅ Memoized winner display for performance optimization
   const memoizedWinnerDisplay = useMemo(() => {
     return race?.status === "closed" ? <WinnerDisplay winner={winner} /> : null;
   }, [race?.status, winner]);
 
-  // ✅ **Meme kiezen en opslaan**
+  // ✅ Handle meme selection and submission
   const handleMemeSelection = async (memeId: string): Promise<void> => {
     if (!walletAddress) {
-      alert("Vul je wallet-adres in om een meme te kiezen!");
+      alert("Enter your wallet address to select a meme!");
       return;
     }
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_BASE_URL}/participants/`,
-        { raceId, walletAddress, memeId }
-      );
+      await axios.post(`${import.meta.env.VITE_API_BASE_URL}/participants/`, {
+        raceId,
+        walletAddress,
+        memeId,
+      });
 
-      console.log("✅ [API] Meme gekozen:", response.data);
+      console.log("✅ [API] Meme selected:", memeId);
       setSelectedMeme(memeId);
 
+      // ✅ Refresh race state after selection
       setTimeout(async () => {
         const updatedRace = await axios.get<RaceUpdate>(
           `${import.meta.env.VITE_API_BASE_URL}/races/${raceId}`
         );
         setRace(updatedRace.data);
-        console.log("🔄 [API] Race handmatig vernieuwd na meme selectie.");
+        console.log("🔄 [API] Race manually refreshed after meme selection.");
       }, 1000);
     } catch (error) {
-      console.error("❌ [ERROR] Meme selectie mislukt:", error);
+      console.error("❌ [ERROR] Meme selection failed:", error);
     }
   };
 
@@ -157,7 +164,7 @@ const RaceDetails = () => {
     <div className="p-6">
       <h2 className="text-3xl font-bold mb-4">🏁 Race Details</h2>
       <p>
-        Huidige ronde: <strong>{race.currentRound}</strong>
+        Current round: <strong>{race.currentRound}</strong>
       </p>
 
       {memoizedWinnerDisplay ||
