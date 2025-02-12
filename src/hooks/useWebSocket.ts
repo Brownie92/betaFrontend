@@ -48,6 +48,11 @@ export const useWebSocket = () => {
       );
     });
 
+    socketInstance.on("raceClosed", (update: RaceUpdate) => {
+      console.log("[SOCKET] 🏁 Race gesloten:", update);
+      setRaceData(update);
+    });
+
     socketInstance.on("winnerUpdate", (update: WinnerUpdate) => {
       console.log("[SOCKET] 🏆 Winner Update:", update);
       setWinnerData(update);
