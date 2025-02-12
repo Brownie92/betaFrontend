@@ -95,6 +95,14 @@ const RaceDetails = () => {
     }
   };
 
+  // ✅ **Winnaar ophalen bij pagina-refresh als race gesloten is**
+  useEffect(() => {
+    if (race?.status === "closed" && !winner) {
+      console.log("🏆 [DEBUG] Winnaar ophalen via API na pagina-refresh...");
+      fetchWinner(race.raceId);
+    }
+  }, [race, winner]);
+
   // ✅ **Race-updates verwerken via WebSocket**
   useEffect(() => {
     if (!raceData || raceData.raceId !== raceId) return;
